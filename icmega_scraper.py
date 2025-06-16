@@ -1,9 +1,6 @@
 import gspread
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials
 import os
-import pickle
 
 # Define scopes needed
 SCOPES = [
@@ -12,26 +9,14 @@ SCOPES = [
 ]
 
 def get_gspread_client():
-    creds = None
+    # Path to your service account key JSON file
+    SERVICE_ACCOUNT_FILE = 'creds/service_account.json'
 
-    # Load token if exists
-    if os.path.exists('creds/token.pickle'):
-        with open('creds/token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-
-    # If no valid token, authenticate and save new one
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'creds/oauth_credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-
-        # Save the token
-        os.makedirs('creds', exist_ok=True)
-        with open('creds/token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+    # Create credentials using service account file and scopes
+    creds = Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE,
+        scopes=SCOPES
+    )
 
     # Return an authorized gspread client
     return gspread.authorize(creds)

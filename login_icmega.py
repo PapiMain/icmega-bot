@@ -4,6 +4,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from tabulate import tabulate
 
 from datetime import datetime, date
 import gspread
@@ -15,9 +16,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Load credentials ---
-EMAIL = os.getenv("ICMEGA_USER1_EMAIL")
-PASSWORD = os.getenv("ICMEGA_USER1_PASSWORD")
-print("Loaded credentials:", EMAIL, "*" * len(PASSWORD) if PASSWORD else "None")
+EMAIL1 = os.getenv("ICMEGA_USER1_EMAIL")
+PASSWORD1 = os.getenv("ICMEGA_USER1_PASSWORD")
+EMAIL2 = os.getenv("ICMEGA_USER2_EMAIL")
+PASSWORD2 = os.getenv("ICMEGA_USER2_PASSWORD")
+
+print("Loaded credentials:")
+print(f"User1: {EMAIL1}, password: {'*' * len(PASSWORD1) if PASSWORD1 else None}")
+print(f"User2: {EMAIL2}, password: {'*' * len(PASSWORD2) if PASSWORD2 else None}")
 
 # --- Google Sheets setup ---
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
@@ -48,7 +54,7 @@ def get_date_range_from_sheet(sheet):
 
 
 # --- Selenium login ---
-def login_to_icmega():
+def login_to_icmega(email, password):
     print("🚀 Launching browser...")
     options = Options()
     options.add_argument("--start-maximized")
@@ -62,14 +68,17 @@ def login_to_icmega():
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.NAME, "recall_UserName"))
         )
-        driver.find_element(By.NAME, "recall_UserName").send_keys(EMAIL)
-        driver.find_element(By.NAME, "recall_UserPassword").send_keys(PASSWORD)
+        driver.find_element(By.NAME, "recall_UserName").send_keys(email)
+        driver.find_element(By.NAME, "recall_UserPassword").send_keys(password)
         driver.execute_script("SubmitForm('L');")
         print("✅ Logged in.")
     except Exception as e:
         print("❌ Login failed:", e)
+        driver.quit()
+        return None
 
     return driver
+
 
 # --- Go to search page and insert date range ---
 def go_to_search_and_enter_dates(driver, start_date, end_date):
@@ -155,7 +164,7 @@ def extract_org_ticket_data(driver, event, wait_time=10):
     import time
 
     driver.get(event["link"])
-    driver.save_screenshot("debug_event_page.png")
+    # driver.save_screenshot("debug_event_page.png")
 
     try:
         # Wait for <ul> to appear
@@ -193,7 +202,7 @@ def extract_org_ticket_data(driver, event, wait_time=10):
         try:
             a_tag = org_el.find_element(By.TAG_NAME, 'a')
             text = a_tag.text.strip()
-            print("🔎 Raw text:", repr(text))
+            # print("🔎 Raw text:", repr(text))
 
             if '(' not in text or ')' not in text:
                 continue
@@ -207,7 +216,7 @@ def extract_org_ticket_data(driver, event, wait_time=10):
             sold_str, total_str = ticket_part.split('/')
             sold, total = int(sold_str), int(total_str)
 
-            print(f"✅ Parsed: {org_name} sold={sold} total={total}")
+            # print(f"✅ Parsed: {org_name} sold={sold} total={total}")
             org_data.append({
                 "link": event["link"],
                 "name": event["name"],
@@ -223,6 +232,34 @@ def extract_org_ticket_data(driver, event, wait_time=10):
 
     return org_data
 
+# --- Run for each user ---
+def run_for_user(email, password, start_date, end_date):
+    print(f"Starting process for user: {email}")
+
+    driver = login_to_icmega(email, password)
+    if not driver:
+        print(f"Skipping user {email} due to login failure.")
+        return []
+
+    go_to_search_and_enter_dates(driver, start_date, end_date)
+
+    allocation_links = get_all_allocation_links(driver)
+    all_ticket_data = []
+
+    for item in allocation_links:
+        url = item["link"] if isinstance(item, dict) else item
+        if isinstance(url, str) and url.startswith("http"):
+            ticket_data = extract_org_ticket_data(driver, item)
+            all_ticket_data.extend(ticket_data)
+        else:
+            print(f"❌ Invalid URL: {url}")
+
+        time.sleep(1)
+
+    driver.quit()
+    print(f"Completed process for user: {email}")
+    return all_ticket_data
+
 
 # --- Main execution flow ---
 if __name__ == "__main__":
@@ -234,24 +271,30 @@ if __name__ == "__main__":
         print("❌ No valid dates found in the sheet.")
     else:
         print(f"📅 Date range from sheet: {start_date} to {end_date}")
-        driver = login_to_icmega()
-        go_to_search_and_enter_dates(driver, start_date, end_date)
 
-        allocation_links = get_all_allocation_links(driver)
-        all_ticket_data = []
+        # Run for both users
+        user1_data = run_for_user(EMAIL1, PASSWORD1, start_date, end_date)
+        user2_data = run_for_user(EMAIL2, PASSWORD2, start_date, end_date)
 
-        for item in allocation_links:
-            url = item["link"] if isinstance(item, dict) else item
-            if isinstance(url, str) and url.startswith("http"):
-                ticket_data = extract_org_ticket_data(driver, item)
-                all_ticket_data.extend(ticket_data)
-            else:
-                print(f"❌ Invalid URL: {url}")
+        all_ticket_data = user1_data + user2_data
 
-            time.sleep(1)
+        # Print data as a clean table
+        print("🎉 All extracted data from both users:")
+if all_ticket_data:
+    from tabulate import tabulate
+    table = tabulate(all_ticket_data, headers="keys", tablefmt="grid", stralign="center")
+    print(table)
 
-        print("🎉 All extracted data:")
-        for item in all_ticket_data:
-            print(item)
+    # Print rows with total == 0 separately
+    zero_total = [row for row in all_ticket_data if row.get("total") == 0]
+    if zero_total:
+        print("\n⚠️ Events with 0 total tickets:")
+        zero_table = tabulate(zero_total, headers="keys", tablefmt="grid", stralign="center")
+        print(zero_table)
+    else:
+        print("\n✅ No events with total = 0")
+else:
+    print("No data found.")
+
 
 

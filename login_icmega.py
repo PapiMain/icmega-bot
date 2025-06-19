@@ -260,6 +260,84 @@ def run_for_user(email, password, start_date, end_date):
     print(f"Completed process for user: {email}")
     return all_ticket_data
 
+# --- Update tickets ---
+def update_sheet_with_ticket_data(sheet, all_ticket_data):
+    print("📥 Updating Google Sheet with ticket data...")
+
+    records = sheet.get_all_records()
+    headers = sheet.row_values(1)
+    # name_col = headers.index("הפקה")
+    # location_col = headers.index("אולם")
+    # date_col = headers.index("תאריך")
+    # org_col = headers.index("ארגון")
+    sold_col = headers.index("נמכרו")
+    total_col = headers.index("קיבלו")
+    updated_col = headers.index("עודכן לאחרונה")
+
+    updated_rows = []
+    not_updated = []
+
+    for ticket in all_ticket_data:
+        ticket_date_raw = ticket["date"]
+
+        # Strip time if exists (e.g. '30/07/25 17:30' → '30/07/25')
+        ticket_date = ticket_date_raw.split()[0]
+
+        # Normalize to dd/mm/yyyy
+        try:
+            dt = datetime.strptime(ticket_date, "%d/%m/%y") if len(ticket_date.split("/")[-1]) == 2 else datetime.strptime(ticket_date, "%d/%m/%Y")
+            ticket_date = dt.strftime("%d/%m/%Y")
+        except Exception as e:
+            print(f"⚠️ Could not parse ticket date '{ticket_date_raw}':", e)
+            continue
+
+
+        found = False
+        for i, row in enumerate(records, start=2):  # start=2 to skip header
+            if (
+                row.get("הפקה") == ticket["name"]
+                # and row.get("אולם") == ticket["location"]
+                and row.get("תאריך") == ticket_date
+                and row.get("ארגון") == ticket["organization"]
+            ):
+                sheet.update_cell(i, sold_col + 1, ticket["sold"])
+                sheet.update_cell(i, total_col + 1, ticket["total"])
+                sheet.update_cell(i, updated_col + 1, datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+                updated_rows.append(i)
+                found = True
+                break
+
+        if not found:
+            not_updated.append(ticket)
+
+    # ✅ Print result summary
+    # Count unique (name, date) pairs that were updated
+    unique_events = set()
+    for ticket in all_ticket_data:
+        ticket_date_raw = ticket["date"]
+        ticket_date = ticket_date_raw.split()[0]
+        try:
+            dt = datetime.strptime(ticket_date, "%d/%m/%y") if len(ticket_date.split("/")[-1]) == 2 else datetime.strptime(ticket_date, "%d/%m/%Y")
+            ticket_date = dt.strftime("%d/%m/%Y")
+        except:
+            continue
+        if any(i for i in updated_rows if (
+            ticket["name"] == records[i - 2].get("הפקה") and
+            ticket_date == records[i - 2].get("תאריך")
+        )):
+            unique_events.add((ticket["name"], ticket_date))
+
+    print(f"✅ Updated {len(updated_rows)} rows in sheet.")
+    print(f"🗂️  That covers {len(unique_events)} unique events.")
+
+    print("🟩 Row numbers updated:", updated_rows)
+
+    if not_updated:
+        print(f"\n⚠️ {len(not_updated)} items were NOT matched in the sheet:")
+        print(tabulate(not_updated, headers="keys", tablefmt="grid", stralign="center"))
+    else:
+        print("✅ All items matched and updated successfully.")
+
 
 # --- Main execution flow ---
 if __name__ == "__main__":
@@ -281,12 +359,16 @@ if __name__ == "__main__":
         # Print data as a clean table
         print("🎉 All extracted data from both users:")
 if all_ticket_data:
-    from tabulate import tabulate
-    table = tabulate(all_ticket_data, headers="keys", tablefmt="grid", stralign="center")
-    print(table)
+    
+    # Create a table with headers
+    # table = tabulate(all_ticket_data, headers="keys", tablefmt="grid", stralign="center")
+    # print(table)
+
+    update_sheet_with_ticket_data(sheet, all_ticket_data)
 
     # Print rows with total == 0 separately
     zero_total = [row for row in all_ticket_data if row.get("total") == 0]
+
     if zero_total:
         print("\n⚠️ Events with 0 total tickets:")
         zero_table = tabulate(zero_total, headers="keys", tablefmt="grid", stralign="center")

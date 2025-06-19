@@ -5,12 +5,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from tabulate import tabulate
-
 from datetime import datetime, date
-import gspread
 from google.oauth2.service_account import Credentials
+import gspread
+import chromedriver_autoinstaller
 import time
-
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -56,10 +55,19 @@ def get_date_range_from_sheet(sheet):
 # --- Selenium login ---
 def login_to_icmega(email, password):
     print("🚀 Launching browser...")
+
+    # Automatically install matching chromedriver
+    chromedriver_autoinstaller.install()
+
+    # Setup headless Chrome options for CI (GitHub Actions)
     options = Options()
-    options.add_argument("--start-maximized")
-    service = Service("chromedriver.exe")
-    driver = webdriver.Chrome(service=service, options=options)
+    options.add_argument("--headless=new")  # modern headless mode
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-gpu")
+
+    driver = webdriver.Chrome(options=options)
 
     driver.get("https://center.icmega.co.il/login.aspx?_theme=A")
     print("🌐 Page opened.")
@@ -78,7 +86,6 @@ def login_to_icmega(email, password):
         return None
 
     return driver
-
 
 # --- Go to search page and insert date range ---
 def go_to_search_and_enter_dates(driver, start_date, end_date):

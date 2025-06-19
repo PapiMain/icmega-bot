@@ -1,7 +1,11 @@
 selenium
-gspread
+tabulate
+python-dotenv
 oauth2client
 gspread
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
+chromedriver-autoinstaller
+
+

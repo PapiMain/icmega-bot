@@ -33,5 +33,5 @@ jobs:
           echo "ICMEGA_USER2_PASSWORD=${{ secrets.ICMEGA_USER2_PASSWORD }}" >> .env
 
       - name: 🚀 Run bot
-        run: python main.py
+        run: python icmega_scraper.py
         # trigger

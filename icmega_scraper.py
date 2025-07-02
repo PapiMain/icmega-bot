@@ -90,10 +90,17 @@ def login_to_icmega(email, password):
 # --- Go to search page and insert date range ---
 def go_to_search_and_enter_dates(driver, start_date, end_date, user_email="unknown_user"):
     print("📄 Navigating to search page...")
-    driver.get("https://center.icmega.co.il/mn_search.aspx?_TableName=sapak_product_barcode&sidebar=23")
+    # driver.get("https://center.icmega.co.il/mn_search.aspx?_TableName=sapak_product_barcode&sidebar=23")
 
     try:
         wait = WebDriverWait(driver, 10)
+
+        print("📂 Waiting for menu item 'מועדים והקצאות'...")
+        menu_item = wait.until(
+            EC.element_to_be_clickable((By.XPATH, "//a[.//span[text()='מועדים והקצאות']]"))
+        )
+        menu_item.click()
+        print("✅ Menu item clicked.")
 
         print("⏳ Waiting for date fields...")
         wait.until(EC.presence_of_element_located((By.NAME, "event_start_date_from")))

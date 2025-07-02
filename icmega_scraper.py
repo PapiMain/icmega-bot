@@ -283,6 +283,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
 
     updated_rows = []
     not_updated = []
+    updates = []
 
     for ticket in all_ticket_data:
         ticket_date_raw = ticket["date"]
@@ -307,15 +308,29 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
                 and row.get("תאריך") == ticket_date
                 and row.get("ארגון") == ticket["organization"]
             ):
-                sheet.update_cell(i, sold_col + 1, ticket["sold"])
-                sheet.update_cell(i, total_col + 1, ticket["total"])
-                sheet.update_cell(i, updated_col + 1, datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+                # sheet.update_cell(i, sold_col + 1, ticket["sold"])
+                # sheet.update_cell(i, total_col + 1, ticket["total"])
+                # sheet.update_cell(i, updated_col + 1, datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
                 updated_rows.append(i)
                 found = True
+                updates.append({
+                    'range': f"{chr(65 + sold_col)}{i}",
+                    'values': [[ticket["sold"]]]
+                })
+                updates.append({
+                    'range': f"{chr(65 + total_col)}{i}",
+                    'values': [[ticket["total"]]]
+                })
+                updates.append({
+                    'range': f"{chr(65 + updated_col)}{i}",
+                    'values': [[datetime.now().strftime("%d/%m/%Y %H:%M:%S")]]
+                })
                 break
 
         if not found:
             not_updated.append(ticket)
+    if updates:
+            sheet.batch_update(updates)
 
     # ✅ Print result summary
     # Count unique (name, date) pairs that were updated

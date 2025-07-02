@@ -116,7 +116,8 @@ def go_to_search_and_enter_dates(driver, start_date, end_date, user_email="unkno
 
     except Exception as e:
         print("❌ Failed during search step:", str(e))
-        screenshot_file = f"search_error_{user_email}.png"
+        os.makedirs("artifacts", exist_ok=True)
+        screenshot_file = f"artifacts/search_error_{user_email}.png"
         driver.save_screenshot(screenshot_file)
         print(f"📸 Screenshot saved: {screenshot_file}")
         return False
@@ -261,6 +262,7 @@ def run_for_user(email, password, start_date, end_date):
         print(f"🚫 Skipping user {email} due to search page error.")
         driver.quit()
         return []
+    
     allocation_links = get_all_allocation_links(driver)
     all_ticket_data = []
 

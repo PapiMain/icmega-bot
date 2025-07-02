@@ -88,7 +88,7 @@ def login_to_icmega(email, password):
     return driver
 
 # --- Go to search page and insert date range ---
-def go_to_search_and_enter_dates(driver, start_date, end_date):
+def go_to_search_and_enter_dates(driver, start_date, end_date, user_email="unknown_user"):
     print("📄 Navigating to search page...")
     driver.get("https://center.icmega.co.il/mn_search.aspx?_TableName=sapak_product_barcode&sidebar=23")
 
@@ -112,8 +112,15 @@ def go_to_search_and_enter_dates(driver, start_date, end_date):
         search_button.click()
 
         print("✅ Search submitted.")
+        return True
+
     except Exception as e:
-        print("❌ Failed during search step:", e)
+        print("❌ Failed during search step:", str(e))
+        screenshot_file = f"search_error_{user_email}.png"
+        driver.save_screenshot(screenshot_file)
+        print(f"📸 Screenshot saved: {screenshot_file}")
+        return False
+
 
 # --- Get all allocation links ---
 def get_all_allocation_links(driver):
@@ -248,8 +255,12 @@ def run_for_user(email, password, start_date, end_date):
         print(f"Skipping user {email} due to login failure.")
         return []
 
-    go_to_search_and_enter_dates(driver, start_date, end_date)
-
+ # ✅ Check if date entry and search succeeded
+    success = go_to_search_and_enter_dates(driver, start_date, end_date, user_email=email)
+    if not success:
+        print(f"🚫 Skipping user {email} due to search page error.")
+        driver.quit()
+        return []
     allocation_links = get_all_allocation_links(driver)
     all_ticket_data = []
 

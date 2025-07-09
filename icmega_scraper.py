@@ -8,6 +8,7 @@ from tabulate import tabulate
 from datetime import datetime, date
 from google.oauth2.service_account import Credentials
 import gspread
+from gspread.utils import rowcol_to_a1
 import chromedriver_autoinstaller
 import time
 import os
@@ -327,9 +328,9 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
             ):
                 # Prepare cell updates
                 updates.extend([
-                    {'range': f"{sheet.title}!{chr(65 + sold_col)}{i}", 'values': [[ticket["sold"]]]},
-                    {'range': f"{sheet.title}!{chr(65 + total_col)}{i}", 'values': [[ticket["total"]]]},
-                    {'range': f"{sheet.title}!{chr(65 + updated_col)}{i}", 'values': [[datetime.now().strftime('%d/%m/%Y %H:%M:%S')]]}
+                    {'range': rowcol_to_a1(i, sold_col + 1), 'values': [[ticket["sold"]]]},
+                    {'range': rowcol_to_a1(i, total_col + 1), 'values': [[ticket["total"]]]},
+                    {'range': rowcol_to_a1(i, updated_col + 1), 'values': [[datetime.now().strftime('%d/%m/%Y %H:%M:%S')]]}
                 ])
                 updated_rows.append(i)
                 updated_ticket_data.append(ticket)
@@ -341,23 +342,23 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
         if not found:
             not_updated.append(ticket)
 
-        if updates:
+    if updates:
             sheet.batch_update(updates)
 
-        print(f"✅ Updated {len(updated_rows)} rows in sheet.")
-        print(f"🗂️  That covers {len(unique_events)} unique events.")
-        print("🟩 Row numbers updated:", updated_rows)
+    print(f"✅ Updated {len(updated_rows)} rows in sheet.")
+    print(f"🗂️  That covers {len(unique_events)} unique events.")
+    print("🟩 Row numbers updated:", updated_rows)
 
-        # 🧾 Build and print table of updated rows
-        if updated_ticket_data:
-            print("\n📊 Table of updated ticket data:")
-            print(tabulate(updated_ticket_data, headers="keys", tablefmt="grid", stralign="center"))
+     # 🧾 Build and print table of updated rows
+    if updated_ticket_data:
+        print("\n📊 Table of updated ticket data:")
+        print(tabulate(updated_ticket_data, headers="keys", tablefmt="grid", stralign="center"))
 
-        if not_updated:
-            print(f"\n⚠️ {len(not_updated)} items were NOT matched in the sheet:")
-            print(tabulate(not_updated, headers="keys", tablefmt="grid", stralign="center"))
-        else:
-            print("✅ All items matched and updated successfully.")
+    if not_updated:
+        print(f"\n⚠️ {len(not_updated)} items were NOT matched in the sheet:")
+        print(tabulate(not_updated, headers="keys", tablefmt="grid", stralign="center"))
+    else:
+        print("✅ All items matched and updated successfully.")
 
     # for ticket in all_ticket_data:
     #     ticket_date_raw = ticket["date"]

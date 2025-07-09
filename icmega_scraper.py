@@ -11,6 +11,8 @@ import gspread
 from gspread.utils import rowcol_to_a1
 import chromedriver_autoinstaller
 import time
+import pytz
+
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -91,7 +93,6 @@ def login_to_icmega(email, password):
 # --- Go to search page and insert date range ---
 def go_to_search_and_enter_dates(driver, start_date, end_date, user_email="unknown_user"):
     print("📄 Navigating to search page...")
-    # driver.get("https://center.icmega.co.il/mn_search.aspx?_TableName=sapak_product_barcode&sidebar=23")
 
     try:
         wait = WebDriverWait(driver, 10)
@@ -126,6 +127,7 @@ def go_to_search_and_enter_dates(driver, start_date, end_date, user_email="unkno
         print("❌ Failed during search step:", str(e))
         os.makedirs("artifacts", exist_ok=True)
         screenshot_file = f"artifacts/search_error_{user_email}.png"
+        # Save screenshot for debugging
         driver.save_screenshot(screenshot_file)
         print(f"📸 Screenshot saved: {screenshot_file}")
         return False
@@ -311,6 +313,9 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
     for ticket in all_ticket_data:
         # Strip time if exists (e.g. '30/07/25 17:30' → '30/07/25')
         ticket_date_raw = ticket["date"].split()[0]
+        # Get current time in Israel
+        israel_tz = pytz.timezone("Asia/Jerusalem")
+        now_israel = datetime.now(israel_tz).strftime('%d/%m/%Y %H:%M:%S')
         # Normalize to dd/mm/yyyy
         try:
             dt = datetime.strptime(ticket_date_raw, "%d/%m/%y") if len(ticket_date_raw.split("/")[-1]) == 2 else datetime.strptime(ticket_date_raw, "%d/%m/%Y")
@@ -330,7 +335,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
                 updates.extend([
                     {'range': rowcol_to_a1(i, sold_col + 1), 'values': [[ticket["sold"]]]},
                     {'range': rowcol_to_a1(i, total_col + 1), 'values': [[ticket["total"]]]},
-                    {'range': rowcol_to_a1(i, updated_col + 1), 'values': [[datetime.now().strftime('%d/%m/%Y %H:%M:%S')]]}
+                    {'range': rowcol_to_a1(i, updated_col + 1), 'values': [[now_israel]]}
                 ])
                 updated_rows.append(i)
                 updated_ticket_data.append(ticket)
@@ -360,107 +365,6 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
     else:
         print("✅ All items matched and updated successfully.")
 
-    # for ticket in all_ticket_data:
-    #     ticket_date_raw = ticket["date"]
-
-    #     # Strip time if exists (e.g. '30/07/25 17:30' → '30/07/25')
-    #     ticket_date = ticket_date_raw.split()[0]
-
-    #     # Normalize to dd/mm/yyyy
-    #     try:
-    #         dt = datetime.strptime(ticket_date, "%d/%m/%y") if len(ticket_date.split("/")[-1]) == 2 else datetime.strptime(ticket_date, "%d/%m/%Y")
-    #         ticket_date = dt.strftime("%d/%m/%Y")
-    #     except Exception as e:
-    #         print(f"⚠️ Could not parse ticket date '{ticket_date_raw}':", e)
-    #         continue
-
-
-    #     found = False
-    #     for i, row in enumerate(records, start=2):  # start=2 to skip header
-    #         if (
-    #             row.get("הפקה") == ticket["name"]
-    #             # and row.get("אולם") == ticket["location"]
-    #             and row.get("תאריך") == ticket_date
-    #             and row.get("ארגון") == ticket["organization"]
-    #         ):
-    #             # sheet.update_cell(i, sold_col + 1, ticket["sold"])
-    #             # sheet.update_cell(i, total_col + 1, ticket["total"])
-    #             # sheet.update_cell(i, updated_col + 1, datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-    #             updated_rows.append(i)
-    #             found = True
-    #             updates.append({
-    #                 'range': f"{chr(65 + sold_col)}{i}",
-    #                 'values': [[ticket["sold"]]]
-    #             })
-    #             updates.append({
-    #                 'range': f"{chr(65 + total_col)}{i}",
-    #                 'values': [[ticket["total"]]]
-    #             })
-    #             updates.append({
-    #                 'range': f"{chr(65 + updated_col)}{i}",
-    #                 'values': [[datetime.now().strftime("%d/%m/%Y %H:%M:%S")]]
-    #             })
-    #             break
-
-    #     if not found:
-    #         not_updated.append(ticket)
-    # if updates:
-    #         sheet.batch_update(updates)
-
-    # # ✅ Print result summary
-    # # Count unique (name, date) pairs that were updated
-    # unique_events = set()
-    # for ticket in all_ticket_data:
-    #     ticket_date_raw = ticket["date"]
-    #     ticket_date = ticket_date_raw.split()[0]
-    #     try:
-    #         dt = datetime.strptime(ticket_date, "%d/%m/%y") if len(ticket_date.split("/")[-1]) == 2 else datetime.strptime(ticket_date, "%d/%m/%Y")
-    #         ticket_date = dt.strftime("%d/%m/%Y")
-    #     except:
-    #         continue
-    #     if any(i for i in updated_rows if (
-    #         ticket["name"] == records[i - 2].get("הפקה") and
-    #         ticket_date == records[i - 2].get("תאריך")
-    #     )):
-    #         unique_events.add((ticket["name"], ticket_date))
-
-    # print(f"✅ Updated {len(updated_rows)} rows in sheet.")
-    # print(f"🗂️  That covers {len(unique_events)} unique events.")
-
-    # print("🟩 Row numbers updated:", updated_rows)
-
-    # # 🧾 Build and print table of updated rows
-    # updated_ticket_data = []
-    # for ticket in all_ticket_data:
-    #     ticket_date_raw = ticket["date"].split()[0]
-    #     try:
-    #         dt = datetime.strptime(ticket_date_raw, "%d/%m/%y") if len(ticket_date_raw.split("/")[-1]) == 2 else datetime.strptime(ticket_date_raw, "%d/%m/%Y")
-    #         ticket_date = dt.strftime("%d/%m/%Y")
-    #     except:
-    #         continue
-
-    #     for i in updated_rows:
-    #         row = records[i - 2]
-    #         if (
-    #             row.get("הפקה") == ticket["name"]
-    #             and row.get("תאריך") == ticket_date
-    #             and row.get("ארגון") == ticket["organization"]
-    #         ):
-    #             updated_ticket_data.append(ticket)
-    #             break
-
-    # if updated_ticket_data:
-    #     print("\n📊 Table of updated ticket data:")
-    #     print(tabulate(updated_ticket_data, headers="keys", tablefmt="grid", stralign="center"))
-
-    # if not_updated:
-    #     print(f"\n⚠️ {len(not_updated)} items were NOT matched in the sheet:")
-    #     print(tabulate(not_updated, headers="keys", tablefmt="grid", stralign="center"))
-    # else:
-    #     print("✅ All items matched and updated successfully.")
-
-
-
 # --- Main execution flow ---
 if __name__ == "__main__":
     gc = get_gspread_client()
@@ -482,10 +386,6 @@ if __name__ == "__main__":
         print("🎉 All extracted data from both users:")
 
     if all_ticket_data:
-        
-        # Create a table with headers
-        # table = tabulate(all_ticket_data, headers="keys", tablefmt="grid", stralign="center")
-        # print(table)
 
         update_sheet_with_ticket_data(sheet, all_ticket_data)
         

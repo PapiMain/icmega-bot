@@ -310,6 +310,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
     for ticket in all_ticket_data:
         # Strip time if exists (e.g. '30/07/25 17:30' → '30/07/25')
         ticket_date_raw = ticket["date"].split()[0]
+        # Normalize to dd/mm/yyyy
         try:
             dt = datetime.strptime(ticket_date_raw, "%d/%m/%y") if len(ticket_date_raw.split("/")[-1]) == 2 else datetime.strptime(ticket_date_raw, "%d/%m/%Y")
             ticket_date = dt.strftime("%d/%m/%Y")
@@ -332,6 +333,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
                 ])
                 updated_rows.append(i)
                 updated_ticket_data.append(ticket)
+                # Count unique (name, date) pairs that were updated
                 unique_events.add((ticket["name"], ticket_date))
                 found = True
                 break
@@ -346,6 +348,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
         print(f"🗂️  That covers {len(unique_events)} unique events.")
         print("🟩 Row numbers updated:", updated_rows)
 
+        # 🧾 Build and print table of updated rows
         if updated_ticket_data:
             print("\n📊 Table of updated ticket data:")
             print(tabulate(updated_ticket_data, headers="keys", tablefmt="grid", stralign="center"))
@@ -355,6 +358,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
             print(tabulate(not_updated, headers="keys", tablefmt="grid", stralign="center"))
         else:
             print("✅ All items matched and updated successfully.")
+            
     # for ticket in all_ticket_data:
     #     ticket_date_raw = ticket["date"]
 
@@ -444,15 +448,15 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
     #             updated_ticket_data.append(ticket)
     #             break
 
-    if updated_ticket_data:
-        print("\n📊 Table of updated ticket data:")
-        print(tabulate(updated_ticket_data, headers="keys", tablefmt="grid", stralign="center"))
+    # if updated_ticket_data:
+    #     print("\n📊 Table of updated ticket data:")
+    #     print(tabulate(updated_ticket_data, headers="keys", tablefmt="grid", stralign="center"))
 
-    if not_updated:
-        print(f"\n⚠️ {len(not_updated)} items were NOT matched in the sheet:")
-        print(tabulate(not_updated, headers="keys", tablefmt="grid", stralign="center"))
-    else:
-        print("✅ All items matched and updated successfully.")
+    # if not_updated:
+    #     print(f"\n⚠️ {len(not_updated)} items were NOT matched in the sheet:")
+    #     print(tabulate(not_updated, headers="keys", tablefmt="grid", stralign="center"))
+    # else:
+    #     print("✅ All items matched and updated successfully.")
 
 
 

@@ -327,9 +327,9 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
             ):
                 # Prepare cell updates
                 updates.extend([
-                    {'range': f"{chr(65 + sold_col)}{i}", 'values': [[ticket["sold"]]]},
-                    {'range': f"{chr(65 + total_col)}{i}", 'values': [[ticket["total"]]]},
-                    {'range': f"{chr(65 + updated_col)}{i}", 'values': [[datetime.now().strftime("%d/%m/%Y %H:%M:%S")]]}
+                    {'range': f"{sheet.title}!{chr(65 + sold_col)}{i}", 'values': [[ticket["sold"]]]},
+                    {'range': f"{sheet.title}!{chr(65 + total_col)}{i}", 'values': [[ticket["total"]]]},
+                    {'range': f"{sheet.title}!{chr(65 + updated_col)}{i}", 'values': [[datetime.now().strftime('%d/%m/%Y %H:%M:%S')]]}
                 ])
                 updated_rows.append(i)
                 updated_ticket_data.append(ticket)
@@ -358,7 +358,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
             print(tabulate(not_updated, headers="keys", tablefmt="grid", stralign="center"))
         else:
             print("✅ All items matched and updated successfully.")
-            
+
     # for ticket in all_ticket_data:
     #     ticket_date_raw = ticket["date"]
 
@@ -479,26 +479,27 @@ if __name__ == "__main__":
 
         # Print data as a clean table
         print("🎉 All extracted data from both users:")
-if all_ticket_data:
-    
-    # Create a table with headers
-    # table = tabulate(all_ticket_data, headers="keys", tablefmt="grid", stralign="center")
-    # print(table)
 
-    update_sheet_with_ticket_data(sheet, all_ticket_data)
-    
+    if all_ticket_data:
+        
+        # Create a table with headers
+        # table = tabulate(all_ticket_data, headers="keys", tablefmt="grid", stralign="center")
+        # print(table)
 
-    # Print rows with total == 0 separately
-    zero_total = [row for row in all_ticket_data if row.get("total") == 0]
+        update_sheet_with_ticket_data(sheet, all_ticket_data)
+        
 
-    if zero_total:
-        print("\n⚠️ Events with 0 total tickets:")
-        zero_table = tabulate(zero_total, headers="keys", tablefmt="grid", stralign="center")
-        print(zero_table)
+        # Print rows with total == 0 separately
+        zero_total = [row for row in all_ticket_data if row.get("total") == 0]
+
+        if zero_total:
+            print("\n⚠️ Events with 0 total tickets:")
+            zero_table = tabulate(zero_total, headers="keys", tablefmt="grid", stralign="center")
+            print(zero_table)
+        else:
+            print("\n✅ No events with total = 0")
     else:
-        print("\n✅ No events with total = 0")
-else:
-    print("No data found.")
+        print("No data found.")
 
 
 

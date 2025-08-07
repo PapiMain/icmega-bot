@@ -183,10 +183,6 @@ def get_all_allocation_links(driver):
 TARGET_ORGS = ['מגה לאן', 'חבר', 'קרנות השוטרים']
 
 def extract_org_ticket_data(driver, event, wait_time=10):
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    import time
 
     driver.get(event["link"])
     # driver.save_screenshot("debug_event_page.png")
@@ -200,26 +196,26 @@ def extract_org_ticket_data(driver, event, wait_time=10):
         print("❌ Timeout waiting for org list:", e)
         return []
 
-    # Wait up to 6 seconds for any of the numbers to become something other than 0/0
-    for _ in range(12):  # check every 0.5s for 6s max
+    # Retry loop to wait for at least one total > 0 to appear (indicating data has loaded)
+    org_elements = []
+    for attempt in range(16):  # retry up to 8 seconds (0.5s interval)
         org_elements = driver.find_elements(By.CSS_SELECTOR, 'ul.list-group-horizontal > li')
-        valid_numbers = []
         for el in org_elements:
             try:
-                a_tag = el.find_element(By.TAG_NAME, 'a')
-                text = a_tag.text.strip()
+                text = el.find_element(By.TAG_NAME, 'a').text.strip()
                 if '(' in text and ')' in text:
                     ticket_part = text.split('(')[-1].strip(')')
                     sold_str, total_str = ticket_part.split('/')
-                    sold = int(sold_str)
                     total = int(total_str)
                     if total > 0:
-                        valid_numbers.append((sold, total))
+                        # Found valid data
+                        break
             except Exception:
                 continue
-        if valid_numbers:
-            break
-        time.sleep(0.5)
+        else:
+            time.sleep(0.5)
+            continue
+        break  # break outer loop if valid data was found
 
     # Now extract the org data as usual
     org_data = []

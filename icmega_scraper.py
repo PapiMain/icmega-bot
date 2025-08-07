@@ -196,26 +196,36 @@ def extract_org_ticket_data(driver, event, wait_time=10):
         print("❌ Timeout waiting for org list:", e)
         return []
 
-    # Retry loop to wait for at least one total > 0 to appear (indicating data has loaded)
-    org_elements = []
-    for attempt in range(16):  # retry up to 8 seconds (0.5s interval)
+    # Retry loop: wait until all TARGET_ORGS have total > 0 and (sold/total) format is present
+    max_retries = 8  # 8 seconds max (1s * 8)
+
+    for attempt in range(max_retries):
         org_elements = driver.find_elements(By.CSS_SELECTOR, 'ul.list-group-horizontal > li')
+        found_orgs = {}
         for el in org_elements:
             try:
-                text = el.find_element(By.TAG_NAME, 'a').text.strip()
-                if '(' in text and ')' in text:
-                    ticket_part = text.split('(')[-1].strip(')')
-                    sold_str, total_str = ticket_part.split('/')
-                    total = int(total_str)
-                    if total > 0:
-                        # Found valid data
-                        break
+                a_tag = el.find_element(By.TAG_NAME, 'a')
+                text = a_tag.text.strip()
+                if '(' not in text or ')' not in text:
+                    continue
+
+                name_part, ticket_part = text.split('(')
+                org_name = name_part.strip()
+                if org_name not in TARGET_ORGS:
+                    continue
+
+                sold_str, total_str = ticket_part.strip(')').split('/')
+                sold, total = int(sold_str), int(total_str)
+                if total > 0:
+                    found_orgs[org_name] = (sold, total)
             except Exception:
                 continue
-        else:
-            time.sleep(0.5)
-            continue
-        break  # break outer loop if valid data was found
+
+        if all(org in found_orgs for org in TARGET_ORGS):
+            break  # All target orgs have valid data
+        time.sleep(1)
+    else:
+        print("⚠️ Warning: Not all orgs loaded in time")
 
     # Now extract the org data as usual
     org_data = []

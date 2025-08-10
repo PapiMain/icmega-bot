@@ -186,7 +186,26 @@ def extract_org_ticket_data(driver, event, wait_time=10):
 
     driver.get(event["link"])
     # driver.save_screenshot("debug_event_page.png")
-
+    
+    # ✅ Wait for AngularJS to finish before looking for ticket elements
+    try:
+        driver.execute_async_script("""
+            var callback = arguments[arguments.length - 1];
+            if (window.angular) {
+                var el = document.querySelector('body');
+                if (angular.element(el).injector()) {
+                    angular.element(el).injector().get('$browser')
+                        .notifyWhenNoOutstandingRequests(callback);
+                } else {
+                    callback(true);
+                }
+            } else {
+                callback(true);
+            }
+        """)
+    except Exception as e:
+        print("⚠️ Skipping Angular wait:", e)
+        
     try:
         # Wait for <ul> to appear
         WebDriverWait(driver, wait_time).until(

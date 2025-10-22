@@ -335,7 +335,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
     not_updated = []
     unique_events = set()
     israel_tz = pytz.timezone("Asia/Jerusalem")
-    now_israel = datetime.now(israel_tz).strftime('%d/%m/%Y %H:%M:%S')
+    now_israel = datetime.now(israel_tz).strftime('%d/%m/%Y %H:%M')
 
     for ticket in all_ticket_data:
         # Strip time if exists (e.g. '30/07/25 17:30' → '30/07/25')

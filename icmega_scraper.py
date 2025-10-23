@@ -359,7 +359,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
                 # Prepare cell updates
                 updates.extend([
                     {'range': rowcol_to_a1(i, sold_col + 1), 'values': [[ticket["sold"]]]},
-                    {'range': rowcol_to_a1(i, total_col + 1), 'values': [[ticket["total"]]]},
+                    # {'range': rowcol_to_a1(i, total_col + 1), 'values': [[ticket["total"]]]},
                     {'range': rowcol_to_a1(i, updated_col + 1), 'values': [[now_israel]]}
                 ])
                 updated_rows.append(i)

@@ -1,5 +1,8 @@
 name: Mega Bot Daily Run
 
+permissions:
+  contents: write
+  
 on:
   schedule:
     - cron: "0 4 * * *" # 7 AM Israel time (UTC+3)

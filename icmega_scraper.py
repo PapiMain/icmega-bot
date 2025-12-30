@@ -314,6 +314,12 @@ def run_for_user(email, password, start_date, end_date):
     driver.quit()
     print(f"Completed process for user: {email}")
     return all_ticket_data
+def names_match(a, b):
+    if not a or not b:
+        return False
+    a = a.strip().lower()
+    b = b.strip().lower()
+    return a in b or b in a
 
 # --- Update tickets ---
 def update_sheet_with_ticket_data(sheet, all_ticket_data):
@@ -352,7 +358,7 @@ def update_sheet_with_ticket_data(sheet, all_ticket_data):
         found = False
         for i, row in enumerate(records, start=2):  # i is actual sheet row index
             if (
-                row.get("הפקה") == ticket["name"]
+                names_match(row.get("הפקה"), ticket["name"])
                 and row.get("תאריך") == ticket_date
                 and row.get("ארגון") == ticket["organization"]
             ):

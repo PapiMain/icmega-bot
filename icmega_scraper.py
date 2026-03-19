@@ -42,18 +42,23 @@ def get_date_range_from_appsheet():
             date_str = row.get(date_field)
             if date_str:
                 try:
-                    if "-" in date_str:  # Check if the date is in ISO format (YYYY-MM-DD)
-                        d = datetime.strptime(date_str, "%Y-%m-%d").date()
-                    else:  # Assume the date is in DD/MM/YYYY format
-                        day, month, year = map(int, date_str.split("/"))
-                        d = date(year, month, day)
+                    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
+                        try:
+                            d = datetime.strptime(date_str, fmt).date()
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        raise ValueError(f"Unrecognized date format: {date_str}")
 
                     if d >= today:
                         dates.append(d)
                 except ValueError as e:
                     print(f"⚠️ Error parsing date '{date_str}': {e}")
+        except KeyError as ke:
+            print(f"⚠️ Missing key '{date_field}' in row: {ke}")
         except Exception as e:
-            print(f"⚠️ Error parsing date: {e}")
+            print(f"⚠️ Unexpected error while processing row: {e}")
             continue
 
     return (min(dates), max(dates)) if dates else (None, None)
@@ -375,9 +380,11 @@ def update_appsheet_with_ticket_data(all_ticket_data):
                     try:
                         app_date_obj = datetime.strptime(app_date_raw, fmt).date()
                         break
-                    except Exception as e:
-                        print(f"⚠️ Error parsing AppSheet date '{app_date_raw}': {e}")
+                    except ValueError:
                         continue
+                else:
+                    print(f"⚠️ Error parsing AppSheet date '{app_date_raw}': Unrecognized format")
+                    continue
 
                 if (
                     names_match(row.get("הפקה"), ticket["name"])

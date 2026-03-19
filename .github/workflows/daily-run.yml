@@ -1,5 +1,5 @@
 name: Mega Bot Daily Run
-  
+
 on:
   schedule:
     - cron: "0 4 * * *" # 7 AM Israel time (UTC+3)
@@ -24,16 +24,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 🔐 Set up secrets
-        run: |
-          mkdir -p creds
-          echo "${{ secrets.GOOGLE_CREDS_JSON }}" > creds/service_account.json
-          echo "ICMEGA_USER1_EMAIL=${{ secrets.ICMEGA_USER1_EMAIL }}" >> .env
-          echo "ICMEGA_USER1_PASSWORD=${{ secrets.ICMEGA_USER1_PASSWORD }}" >> .env
-          echo "ICMEGA_USER2_EMAIL=${{ secrets.ICMEGA_USER2_EMAIL }}" >> .env
-          echo "ICMEGA_USER2_PASSWORD=${{ secrets.ICMEGA_USER2_PASSWORD }}" >> .env
-
       - name: 🚀 Run bot
+        env:
+          APPSHEET_APP_ID: ${{ secrets.APPSHEET_APP_ID }}
+          APPSHEET_APP_KEY: ${{ secrets.APPSHEET_APP_KEY }}
+          ICMEGA_USER1_EMAIL: ${{ secrets.ICMEGA_USER1_EMAIL }}
+          ICMEGA_USER1_PASSWORD: ${{ secrets.ICMEGA_USER1_PASSWORD }}
+          ICMEGA_USER2_EMAIL: ${{ secrets.ICMEGA_USER2_EMAIL }}
+          ICMEGA_USER2_PASSWORD: ${{ secrets.ICMEGA_USER2_PASSWORD }}
         run: python icmega_scraper.py
 
       - name: 📸 Upload screenshot artifacts
